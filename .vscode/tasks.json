@@ -11,7 +11,9 @@
                 "-Wextra",
                 "${workspaceFolder}/src/main.cpp",
                 "${workspaceFolder}/src/DocumentLoader.cpp",
+                "${workspaceFolder}/src/IndexBuilder.cpp",
                 "${workspaceFolder}/src/TextProcessor.cpp",
+                "${workspaceFolder}/src/SearchModule.cpp",
                 "-o",
                 "${workspaceFolder}/main.exe"
             ],
