@@ -13,7 +13,11 @@
                 "${workspaceFolder}/src/DocumentLoader.cpp",
                 "${workspaceFolder}/src/IndexBuilder.cpp",
                 "${workspaceFolder}/src/TextProcessor.cpp",
+                "${workspaceFolder}/src/QueryProcessor.cpp",
                 "${workspaceFolder}/src/SearchModule.cpp",
+                "${workspaceFolder}/src/RankingModule.cpp",
+                "${workspaceFolder}/src/ResultFormatter.cpp",
+                "${workspaceFolder}/src/SnippetGenerator.cpp",
                 "-o",
                 "${workspaceFolder}/main.exe"
             ],

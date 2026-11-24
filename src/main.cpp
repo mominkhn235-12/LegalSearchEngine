@@ -1,19 +1,31 @@
 #include "DocumentLoader.h"
 #include "IndexBuilder.h"
+#include "QueryProcessor.h"
+#include "RankingModule.h"
+#include "ResultFormatter.h"
 #include "SearchModule.h"
+#include "SnippetGenerator.h"
 #include "TextProcessor.h"
 
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 using namespace std;
 
 int main() {
     DocumentLoader loader;
     TextProcessor textProcessor;
+    QueryProcessor queryProcessor(textProcessor);
     IndexBuilder indexBuilder;
     const vector<Document> documents = loader.loadDocuments("data");
+    unordered_map<int, string> documentNames;
+    unordered_map<int, const Document*> documentsById;
+    for (const Document& document : documents) {
+        documentNames.emplace(document.id, document.filename);
+        documentsById.emplace(document.id, &document);
+    }
 
     for (const Document& document : documents) {
         const vector<string> words = textProcessor.process(document.content);
@@ -21,6 +33,9 @@ int main() {
     }
 
     SearchModule searchModule(indexBuilder.getIndex());
+    RankingModule rankingModule;
+    ResultFormatter resultFormatter;
+    SnippetGenerator snippetGenerator;
 
     vector<string> terms;
     for (const auto& entry : indexBuilder.getIndex()) {
@@ -47,29 +62,41 @@ int main() {
 
     cout << "Total loaded documents: " << documents.size() << '\n';
 
-    cout << "Enter one search keyword: ";
-    string keyword;
-    if (!(cin >> keyword)) {
-        cout << "No search keyword was provided.\n";
+    cout << "Enter a search query: ";
+    string query;
+    if (!getline(cin, query)) {
+        cout << "No search query was provided.\n";
         return 0;
     }
 
-    const vector<string> queryWords = textProcessor.process(keyword);
+    const vector<string> queryWords = queryProcessor.process(query);
     if (queryWords.empty()) {
-        cout << "No searchable keyword was found.\n";
+        cout << "No searchable tokens were found.\n";
         return 0;
     }
 
-    const vector<pair<int, int>> results = searchModule.search(queryWords.front());
-    if (results.empty()) {
-        cout << "No results found for '" << queryWords.front() << "'.\n";
-        return 0;
+    cout << "Processed tokens:";
+    for (const string& token : queryWords) {
+        cout << ' ' << token;
+    }
+    cout << '\n';
+
+    unordered_map<string, vector<pair<int, int>>> searchResults;
+    for (const string& token : queryWords) {
+        searchResults.emplace(token, searchModule.search(token));
     }
 
-    cout << "Search results for '" << queryWords.front() << "':\n";
-    for (const auto& result : results) {
-        cout << "Document " << result.first << " (frequency: "
-             << result.second << ")\n";
+    const vector<pair<int, int>> rankedResults = rankingModule.rank(searchResults);
+    unordered_map<int, string> documentSnippets;
+    for (const auto& result : rankedResults) {
+        const auto document = documentsById.find(result.first);
+        if (document != documentsById.end()) {
+            documentSnippets.emplace(
+                result.first,
+                snippetGenerator.generate(document->second->content, queryWords));
+        }
     }
+
+    resultFormatter.display(rankedResults, documentNames, documentSnippets);
     return 0;
 }
